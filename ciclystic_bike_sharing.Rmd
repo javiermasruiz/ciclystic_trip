@@ -1,0 +1,355 @@
+---
+title: "Ciclystic Trip Data Case Study"
+author: "Javier Mas Ruiz"
+date: '2022-10-24'
+output:
+  html_document: 
+    theme: sandstone
+    highlight: tango
+    toc: yes
+  pdf_document:
+    toc: yes
+  html_notebook: 
+    toc: yes
+---
+__Case Study for Google's Data Analytics Professional Certificate__
+ 
+# Introduction
+
+<style>
+body {
+text-align: justify}
+</style>
+
+Welcome to the Cyclistic bike share analysis case study. In this case study, you will perform many real-world tasks typical of a junior data analyst. You will work for a fictional company called Cyclistic and meet different characters and team members. To answer the company's key questions, you will follow the steps of the data analysis process: ask, prepare, process, analyze, share and act. In this process, the case study roadmap charts, including guiding questions and key tasks, will help you stay on track.
+
+
+## Scenario
+
+You are a junior data analyst working on the marketing analyst team at Cyclistic, a bike-sharing company in Chicago. The marketing director believes that the company's future success depends on maximizing the number of annual memberships. Therefore, your team wants to understand what differences exist in the use of Cyclistic bikes between casual riders and annual members. Through this knowledge, your team will design a new marketing strategy to convert casual riders into annual members. Before that, however, Cyclistic executives must approve your recommendations, so back up your proposal with compelling data insights and professional data visualizations.
+
+## Characters and teams
+
+* __Cyclistic:__ A bike share program that includes 5,800 bikes and 600 stations. Cyclistic is notable for also offering recumbent bikes, manual tricycles and cargo bikes that offer a more inclusive use of shared bikes for people with disabilities and riders who cannot use a standard two-wheeled bicycle. The majority of cyclists choose traditional bikes, about 8% of cyclists use the assisted options. Cyclistic users are most likely to use the bicycle for recreation, but about 30% use it to commute to work each day.
+* __Lily Moreno:__ The marketing director and your manager. Moreno is responsible for developing campaigns and initiatives to promote the bike share program. Campaigns may include email, social media and other channels.
+* __Cyclistic's marketing data computational analytics team:__ A team of data analysts who are responsible for collecting, analyzing and reporting data that helps drive Cyclistic's marketing strategy. You joined this team six months ago and have dedicated yourself to not only learning about Cyclistic's mission and business goals, but also seeing how you can help Cyclistic achieve it, from your position as a junior data analyst.
+* __Cyclistic's executive team:__ The highly detailed executive team will decide whether to approve the recommended marketing program.
+
+## About the Company
+Cyclistic is a company that in 2016 launched a successful bike sharing program. Since then, the program grew to a fleet of 5,824 geo-tagged and locked bikes at a network of 692 stations across Chicago. Bikes can be unlocked from one station and returned to any other station in the system at any time.
+
+
+
+
+# Analysis Stages and Report
+
+## Business objective to be faced
+Moreno (marketing director) believes that maximizing the number of annual members will be key to future growth. So a clear goal is set: __Design marketing strategies aimed at converting occasional cyclists into annual members.__ In order to response _How do annual members and occasional riders differ in their use of Cyclistic bicycles?_
+
+## Description of data sources used
+The data used in this analysis is public and was provided by Motivate International Inc. under this [license](https://www.divvybikes.com/data-license-agreement) and it can be downloaded [here](https://divvy-tripdata.s3.amazonaws.com/index.html).
+
+
+
+## Cleaning and Manipulating Data Process
+
+```{r}
+# Importing and installing relevant packages used for the analisys
+library(tidyverse) 
+library(lubridate)
+library(janitor)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+getwd() # display my working directory
+setwd("D:/Data_Science/Data_Analysis_by_Google_2022_julio/Curso 8. Curso Final de Analisis Computacional/Caso1-Cyclistic Data 07.21-06.22") #sets your working directory to simplify calls to data 
+```
+
+
+```{r}
+# Importing all .csv files from PC
+# STEP 1: COLLECT DATA
+
+q2_2019 <- read_csv("Divvy_Trips_2019_Q2.csv")
+q3_2019 <- read_csv("Divvy_Trips_2019_Q3.csv")
+q4_2019 <- read_csv("Divvy_Trips_2019_Q4.csv")
+q1_2020 <- read_csv("Divvy_Trips_2020_Q1.csv")
+
+
+
+```
+```{r}
+# ===================================================
+# STEP 2: WRANGLE DATA AND COMBINE INTO A SINGLE FILE
+# ===================================================
+# Compare column names each of the files
+# While the names don't have to be in the same order, they DO need to match perfectly before we can use a command to join them into one file
+
+colnames(q3_2019)
+colnames(q4_2019)
+colnames(q2_2019)
+colnames(q1_2020)
+
+```
+
+```{r}
+# Rename columns  to make them consistent with q1_2020 (as this will be the supposed going-forward table design for Divvy)
+(q3_2019 <- rename(q3_2019, ride_id = trip_id, rideable_type = bikeid, started_at = start_time, ended_at = end_time, start_station_name = from_station_name, start_station_id = from_station_id, end_station_name = to_station_name, end_station_id = to_station_id, member_casual = usertype))
+
+(q4_2019 <- rename(q4_2019, ride_id = trip_id, rideable_type = bikeid, started_at = start_time, ended_at = end_time, start_station_name = from_station_name, start_station_id = from_station_id, end_station_name = to_station_name, end_station_id = to_station_id, member_casual = usertype))
+
+
+(q2_2019 <- rename(q2_2019, ride_id = '01 - Rental Details Rental ID', rideable_type = "01 - Rental Details Bike ID", started_at = "01 - Rental Details Local Start Time", ended_at = "01 - Rental Details Local End Time", start_station_name = "03 - Rental Start Station Name", start_station_id = "03 - Rental Start Station ID", end_station_name = "02 - Rental End Station Name", end_station_id = "02 - Rental End Station ID", member_casual = "User Type"))
+
+```
+
+
+
+```{r}
+# Inspect the dataframes and look for incongruencies
+str(q1_2020)
+str(q4_2019)
+str(q3_2019)
+str(q2_2019)
+
+```
+
+```{r}
+# Convert ride_id and rideable_type to character so that they can stack correctly
+q4_2019 <- mutate(q4_2019, ride_id = as.character(ride_id) ,rideable_type = as.character(rideable_type)) 
+q3_2019 <- mutate(q3_2019, ride_id = as.character(ride_id) ,rideable_type = as.character(rideable_type)) 
+q2_2019 <- mutate(q2_2019, ride_id = as.character(ride_id) ,rideable_type = as.character(rideable_type)) 
+
+```
+
+
+```{r}
+# Stack individual quarter's data frames into one big data frame
+all_trips <- bind_rows(q2_2019, q3_2019, q4_2019, q1_2020)
+
+# Remove lat, long, birthyear, and gender fields as this data was dropped beginning in 2020
+all_trips <- all_trips %>% select(-c(start_lat, start_lng, end_lat, end_lng, birthyear, gender, "01 - Rental Details Duration In Seconds Uncapped", "05 - Member Details Member Birthday Year", "Member Gender", "tripduration"))
+
+```
+
+```{r}
+#======================================================
+# STEP 3: CLEAN UP AND ADD DATA TO PREPARE FOR ANALYSIS
+#======================================================
+# Inspect the new table that has been created
+colnames(all_trips)  #List of column names
+nrow(all_trips)  #How many rows are in data frame?
+dim(all_trips)  #Dimensions of the data frame?
+head(all_trips)  #See the first 6 rows of data frame.  Also tail(all_trips)
+str(all_trips)  #See list of columns and data types (numeric, character, etc)
+summary(all_trips)  #Statistical summary of data. Mainly for numerics
+
+```
+
+```{r}
+# There are a few problems we will need to fix:
+# (1) In the "member_casual" column, there are two names for members ("member" and "Subscriber") and two names for casual riders ("Customer" and "casual"). We will need to consolidate that from four to two labels.
+# (2) The data can only be aggregated at the ride-level, which is too granular. We will want to add some additional columns of data -- such as day, month, year -- that provide additional opportunities to aggregate the data.
+# (3) We will want to add a calculated field for length of ride since the 2020Q1 data did not have the "tripduration" column. We will add "ride_length" to the entire dataframe for consistency.
+# (4) There are some rides where tripduration shows up as negative, including several hundred rides where Divvy took bikes out of circulation for Quality Control reasons. We will want to delete these rides.
+
+# In the "member_casual" column, replace "Subscriber" with "member" and "Customer" with "casual"
+# Before 2020, Divvy used different labels for these two types of riders ... we will want to make our dataframe consistent with their current nomenclature
+
+# N.B.: "Level" is a special property of a column that is retained even if a subset does not contain any values from a specific level
+# Begin by seeing how many observations fall under each usertype
+
+table(all_trips$member_casual)
+
+# Reassign to the desired values (we will go with the current 2020 labels)
+all_trips <-  all_trips %>% mutate(member_casual = recode(member_casual, "Subscriber" = "member", "Customer" = "casual"))
+
+# Check to make sure the proper number of observations were reassigned
+table(all_trips$member_casual)
+
+
+```
+
+```{r}
+# Add columns that list the date, month, day, and year of each ride
+# This will allow us to aggregate ride data for each month, day, or year ... before completing these operations we could only aggregate at the ride level
+# https://www.statmethods.net/input/dates.html more on date formats in R found at that link
+
+all_trips$date <- as.Date(all_trips$started_at) #The default format is yyyy-mm-dd
+all_trips$month <- format(as.Date(all_trips$date), "%m")
+all_trips$day <- format(as.Date(all_trips$date), "%d")
+all_trips$year <- format(as.Date(all_trips$date), "%Y")
+all_trips$day_of_week <- format(as.Date(all_trips$date), "%A")
+
+# Add a "ride_length" calculation to all_trips (in seconds)
+# https://stat.ethz.ch/R-manual/R-devel/library/base/html/difftime.html
+all_trips$ride_length <- difftime(all_trips$ended_at,all_trips$started_at)
+
+
+# Inspect the structure of the columns
+str(all_trips)
+
+```
+
+```{r}
+# Convert "ride_length" from Factor to numeric so we can run calculations on the data
+is.factor(all_trips$ride_length)
+all_trips$ride_length <- as.numeric(as.character(all_trips$ride_length))
+is.numeric(all_trips$ride_length)
+
+```
+
+```{r}
+# Remove "bad" data
+# The dataframe includes a few hundred entries when bikes were taken out of docks and checked for quality by Divvy or ride_length was negative
+# We will create a new version of the dataframe (v2) since data is being removed
+# https://www.datasciencemadesimple.com/delete-or-drop-rows-in-r-with-conditions-2/
+all_trips_v2 <- all_trips[!(all_trips$start_station_name == "HQ QR" | all_trips$ride_length<0),]
+dim(all_trips_v2)
+```
+
+
+
+
+
+
+## Analyzing Process
+
+
+```{r}
+# STEP 4: CONDUCT DESCRIPTIVE ANALYSIS
+#=====================================
+# Descriptive analysis on ride_length (all figures in seconds)
+mean(all_trips_v2$ride_length) #straight average (total ride length / rides)
+median(all_trips_v2$ride_length) #midpoint number in the ascending array of ride lengths
+max(all_trips_v2$ride_length) #longest ride
+min(all_trips_v2$ride_length) #shortest ride
+```
+
+```{r}
+# You can condense the four lines above to one line using summary() on the specific attribute
+summary(all_trips_v2$ride_length)
+
+```
+
+
+```{r}
+# Compare members and casual users
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual, FUN = mean)
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual, FUN = median)
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual, FUN = max)
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual, FUN = min)
+
+
+```
+
+```{r}
+# See the average ride time by each day for members vs casual users
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+
+```
+
+```{r}
+# Notice that the days of the week are out of order. Let's fix that.
+all_trips_v2$day_of_week <- ordered(all_trips_v2$day_of_week, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+
+```
+
+
+```{r}
+# Now, let's run the average ride time by each day for members vs casual users
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+
+```
+
+
+```{r}
+# analyze ridership data by type and weekday
+all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>%  #creates weekday field using wday()
+  group_by(member_casual, weekday) %>%  #groups by usertype and weekday
+  summarise(number_of_rides = n()							#calculates the number of rides and average duration 
+  ,average_duration = mean(ride_length)) %>% 		# calculates the average duration
+  arrange(member_casual, weekday)								# sorts
+
+```
+
+
+## Supporting visualizations and key findings
+
+```{r}
+#Transforming  data to create the Viz
+cyclistic_users <- all_trips_v2 %>% group_by(member_casual) %>% count() %>%  ungroup() %>% mutate(pcnt = n / sum(n)) %>% mutate(labels = scales::percent(pcnt))
+
+head(cyclistic_users)
+#Visualizing the distribution using a pie chart with ggplot
+ggplot(cyclistic_users, aes(x="", y=labels, fill=member_casual)) + geom_col() + geom_text(aes(label = labels), size=8, position = position_stack(vjust = 0.5), colour="white") + coord_polar("y", start=0) + scale_fill_brewer(palette = "Set2") + theme_void() + labs(title="Cyclistic users distribution by type")
+
+```
+
+
+```{r}
+# Let's visualize the number of rides by rider type
+all_trips_v2 %>% mutate(weekday = wday(started_at, label = TRUE)) %>% group_by(member_casual, weekday) %>% summarise(number_of_rides = n() ,average_duration = mean(ride_length)) %>% arrange(member_casual, weekday)  %>% ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) + geom_col(position = "dodge")
+
+```
+
+
+```{r}
+# Let's create a visualization for average duration
+all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")
+
+```
+
+
+# Conclusions
+
+During the analysis, we discovered several insights. Only 1% of the data were removed from the analysis including empty data, repeated data, NA data and data used for testing purposes. 
+
+* The number of users with membership is 54% higher than the number of casual users.
+
+* Membership cyclists make 5 times more trips than casual cyclists, on weekdays, on weekends casual cyclists increase the number of trips while members reduce their number of trips reaching a ratio of 4:5 (casual:members).
+
+* For the case of trip length, it is appreciated that the average trip time in casual cyclists has a higher ratio of 7:2 with respect to cyclists with membership. Evidencing that casual cyclists make trips of longer duration than member cyclists.
+
+
+# Recommendations
+
+Based on the analysis of the available data and the conclusions obtained, we suggest some recommendations to be taken into account:
+
+* Some type of special short-term subscription can be offered to encourage casual cyclists to become members.
+
+* Survey casual riders to see what incentives would make them become annual members
+
+* Conduct a "zero emissions" campaign through family bike rides.
+
+
+
+```{r}
+#=================================================
+# STEP 5: EXPORT SUMMARY FILE FOR FURTHER ANALYSIS
+#=================================================
+# Create a csv file that we will visualize in Excel, Tableau, or my presentation software
+# N.B.: This file location is for a Mac. If you are working on a PC, change the file location accordingly (most likely "C:\Users\YOUR_USERNAME\Desktop\...") to export the data. You can read more here: https://datatofish.com/export-dataframe-to-csv-in-r/
+
+counts <- aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+write.csv(counts, file = "D:/Data_Science/Data_Analysis_by_Google_2022_julio/Curso 8. Curso Final de Analisis Computacional/Caso1-Cyclistic Data 07.21-06.22/avg_ride_length.csv")
+```
+
+# Session Info:
+
+```{r}
+# printing session information for compatibility 
+sessionInfo()
+```
+
+
+
+
